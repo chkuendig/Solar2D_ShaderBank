@@ -66,9 +66,14 @@ display.setStatusBar( display.HiddenStatusBar )
 -- display.setDefault( "textureWrapX", "repeat" )
 -- display.setDefault( "textureWrapY", "repeat" )
 ----------------------------------------------------------------------------------------------------
-require("_mcp_touch")  -- Auto-injected by MCP server
-require("_mcp_screenshot")  -- Auto-injected by MCP server
-require("_mcp_logger")  -- Auto-injected by MCP server
+-- Auto-injected by MCP server. Simulator only: they drive the simulator through
+-- files in the host's temp folder, which a packaged build (HTML5, device) has no
+-- way to reach and no business touching.
+if system.getInfo( "environment" ) == "simulator" then
+    require("_mcp_touch")
+    require("_mcp_screenshot")
+    require("_mcp_logger")
+end
 local shdilr = require( "_plugin.shdilr" )
 local inspect = require( "_plugin.inspect" ) -- Using only for Debuging
 local widget = require( "widget" )
@@ -85,10 +90,28 @@ local toggle_visible = function( b_, ... ) for i=1,#arg do    arg[i].isVisible =
 local a_val2ind = function( a_, k_ ) for i=1, #a_ do    if a_[i] == k_ then return i     end end end    --@Array Value to Index 
 local _lfs = require( "lfs" )
 local s_match = string.match
-local file_get_match_sub = function( sPth_, sPtrn_, sTrim_ ) --@strPath, @strPattern
+
+-- A packaged build (HTML5, device) compiles every .lua into resource.car, so
+-- lfs.dir() over the resource folder never sees a shader and every category comes
+-- up empty. tools/gen-shader-manifest.sh writes the listing at build time instead.
+-- No manifest in the simulator, where the files really are on disk, so the live
+-- directory listing still decides there. See the script for why it isn't committed.
+local mtManifest
+do  local _ok, _res = pcall( require, "_shader_manifest" )
+    if _ok and type( _res ) == "table" then    mtManifest = _res     end
+end
+
+local dir_list = function( sPth_ ) --@strPath >> array of file names
+    if mtManifest and mtManifest[ sPth_ ] then    return mtManifest[ sPth_ ]     end
     local _path = system.pathForFile( sPth_, system.ResourceDirectory )
     local _a = {}
-    for file in _lfs.dir( _path ) do
+    for file in _lfs.dir( _path ) do    _a[#_a+1] = file     end
+return _a    end
+
+local file_get_match_sub = function( sPth_, sPtrn_, sTrim_ ) --@strPath, @strPattern
+    local _aFile = dir_list( sPth_ )
+    local _a = {}
+    for i=1, #_aFile do    local file = _aFile[i]
         -- only real .lua files, ignore .rej/.orig backups from patches
         if file:match(sPtrn_) and file:match("%.lua$") then    _a[#_a+1] = file:gsub("%.lua$", "" )     end
     end
