@@ -96,7 +96,8 @@ find _shader -type d | LC_ALL=C sort | while read -r dir; do
             /kernel\.group[ \t]*=/ && group=="" { if (match($0, /"[^"]*"/)) group=substr($0, RSTART+1, RLENGTH-2) }
             /kernel\.name[ \t]*=/  && name==""  { if (match($0, /"[^"]*"/)) name=substr($0, RSTART+1, RLENGTH-2) }
             url=="" { if (match($0, /https?:\/\/[^ \t")]+/)) url=substr($0, RSTART, RLENGTH) }
-            FNR > 60 { exit }
+            group != "" && name != "" && url != "" { exit }
+            FNR > 200 { exit }
             END { printf "%s\t%s\t%s", group, name, url }
         ' "$dir/$f")
         group=$(printf '%s' "$meta" | cut -f1 | esc)
@@ -117,7 +118,8 @@ cat <<HTML
 Built from <a href="$REPO_URL">$REPO_URL</a> by the
 <a href="https://github.com/chkuendig/docker-solar2d">Solar2D Linux container</a>, which runs the HTML5 packager
 that Solar2D otherwise only ships for macOS and Windows. Shaders are by their original authors — check the licence
-in each file before using one.
+in each file before using one. About fifty of the generator shaders do not compile in a browser:
+they mix <code>int</code> and <code>float</code> in ways desktop GLSL forgives and GLSL ES does not.
 </footer>
 </div>
 <script>

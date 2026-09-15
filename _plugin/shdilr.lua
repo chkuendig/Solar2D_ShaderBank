@@ -13,6 +13,7 @@
 --]]
 
 
+local glsl_es = require( "_plugin.glsl_es" ) -- ES conformance: browsers and devices reject GLSL the desktop simulator accepts
 local a_val2idx = function( a_, k_ ) for i=1, #a_ do    if a_[i] == k_ then return i end   end end   --@Array Value to Index 
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
@@ -50,7 +51,7 @@ M.load_list = function( kFdr_, aFN_, iU_, bKeep_ )    --@kFilePrefix, @aFileName
     for i=1,# aFN_ do
         local _fileNm = aFN_[i]
         _d[#_d+1] = require( kFdr_ .. _fileNm )
-        graphics.defineEffect(_d[#_d])
+        graphics.defineEffect( glsl_es.normalize( _d[#_d] ) )
         if iU_ then
             maaList[iU_][#maaList[iU_]+1] = _fileNm
             madShdr[iU_][_fileNm] = m.extract_info( _d[#_d] )
