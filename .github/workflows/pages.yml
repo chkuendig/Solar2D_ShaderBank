@@ -1,0 +1,87 @@
+# Build the shader viewer for the browser and publish it, plus an index of every
+# shader in the bank, to GitHub Pages.
+#
+# Solar2D ships no Linux HTML5 packager, so the build runs inside
+# ghcr.io/chkuendig/solar2d — a container carrying a Solar2D fork with the Linux
+# build gates opened. See https://github.com/chkuendig/docker-solar2d.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Solar2D container tag to build with (e.g. 3731, latest)"
+        required: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time, and never cancel one halfway: a cancelled deploy can
+# leave the site on a half-uploaded artifact.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # Pinned rather than :latest. Two runs of the same commit should produce the
+  # same site; an engine that changes underneath the build without the commit
+  # changing makes a regression impossible to place. Bump deliberately.
+  SOLAR2D_TAG: "3731"
+  APP_NAME: ShaderBank
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve container image
+        run: |
+          TAG="${{ inputs.image_tag || env.SOLAR2D_TAG }}"
+          echo "IMAGE=ghcr.io/chkuendig/solar2d:${TAG}" >> "$GITHUB_ENV"
+          echo "Building with ghcr.io/chkuendig/solar2d:${TAG}"
+
+      # The app finds its shaders with lfs.dir() over the resource folder, which
+      # only works in the simulator: a packaged build compiles every .lua into
+      # resource.car and the listing comes back empty. Hand it the list instead.
+      - name: List shaders for the packaged build
+        run: tools/gen-shader-manifest.sh
+
+      - name: Build the viewer for HTML5
+        run: |
+          mkdir -p out
+          docker run --rm \
+            -v "$PWD:/project" \
+            -v "$PWD/out:/output" \
+            -e BUILD_VERSION="${GITHUB_SHA::7}" \
+            "$IMAGE" build \
+              --app-name "$APP_NAME" \
+              --app-version "1.0.${{ github.run_number }}"
+
+      - name: Assemble the site
+        run: |
+          # The container writes as root; the Pages artifact is packed as the runner user.
+          sudo chown -R "$(id -u):$(id -g)" out
+          mkdir -p _site/viewer
+          cp -r "out/${APP_NAME}.html5/." _site/viewer/
+          REPO_REF="$GITHUB_SHA" tools/gen-site-index.sh _site
+          du -sh _site _site/viewer
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-22.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -90,15 +90,31 @@ local toggle_visible = function( b_, ... ) for i=1,#arg do    arg[i].isVisible =
 local a_val2ind = function( a_, k_ ) for i=1, #a_ do    if a_[i] == k_ then return i     end end end    --@Array Value to Index 
 local _lfs = require( "lfs" )
 local s_match = string.match
+
+-- A packaged build (HTML5, device) compiles every .lua into resource.car, so
+-- lfs.dir() over the resource folder never sees a shader and every category comes
+-- up empty. tools/gen-shader-manifest.sh writes the listing at build time instead.
+-- No manifest in the simulator, where the files really are on disk, so the live
+-- directory listing still decides there. See the script for why it isn't committed.
+local mtManifest
+do  local _ok, _res = pcall( require, "_shader_manifest" )
+    if _ok and type( _res ) == "table" then    mtManifest = _res     end
+end
+
 local file_get_match_sub = function( sPth_, sPtrn_, sTrim_ ) --@strPath, @strPattern
-    local _path = system.pathForFile( sPth_, system.ResourceDirectory )
     local _a = {}
-    -- missing folder (e.g. no reviewing shaders yet) is not an error: scan nothing
-    if _path and _lfs.attributes( _path, "mode" ) == "directory" then
-    for file in _lfs.dir( _path ) do
+    local _aFile = mtManifest and mtManifest[ sPth_ ]
+    if not _aFile then
+        local _path = system.pathForFile( sPth_, system.ResourceDirectory )
+        _aFile = {}
+        -- missing folder (e.g. no reviewing shaders yet) is not an error: scan nothing
+        if _path and _lfs.attributes( _path, "mode" ) == "directory" then
+            for file in _lfs.dir( _path ) do    _aFile[#_aFile+1] = file     end
+        end
+    end
+    for i=1, #_aFile do    local file = _aFile[i]
         -- only real .lua files, ignore .rej/.orig backups from patches
         if file:match(sPtrn_) and file:match("%.lua$") then    _a[#_a+1] = file:gsub("%.lua$", "" )     end
-    end
     end
     -- A-Z for quick scroll to specific shader (case-insensitive)
     table.sort(_a, function(a,b) return a:lower() < b:lower() end)

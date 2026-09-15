@@ -1,0 +1,11 @@
+# Written at build time by tools/gen-shader-manifest.sh, deliberately not committed:
+# a checked-in copy goes stale the moment a shader is added and silently wins over
+# the simulator's live directory listing.
+_shader_manifest.lua
+
+# Build output: the HTML5 packager's, and the site assembled from it.
+out/
+_site/
+
+# Injected into the project by the container's build-html5.sh.
+version.lua
