@@ -20,20 +20,26 @@ changes to the app make the packaged build work:
   MCP server through files in the host's temp folder, which a browser build cannot
   reach.
 - `_plugin/glsl_es.lua` makes the shaders compile on WebGL. The desktop
-  simulator compiles them as desktop GLSL, which is lenient in two ways ES is
-  not: it gives floats a default precision, and it allows a global to be
-  initialised from a uniform. Browsers and real devices reject both, so *no*
-  shader compiled in the first web build. The shim declares a default precision
-  and moves those initialisers to the top of the kernel function, on the way to
-  `graphics.defineEffect` and only on ES targets — the shader files are left
-  exactly as their authors wrote them.
+  simulator compiles them as desktop GLSL, which is lenient in several ways ES
+  is not, and *no* shader compiled in the first web build. The shim rewrites the
+  kernel table on the way to `graphics.defineEffect`, and only on ES targets, so
+  the shader files are left exactly as their authors wrote them. It covers:
+  - no default float precision in ES fragment shaders;
+  - globals initialised from a uniform or varying, which ES requires to be
+    constant expressions — the assignment moves to the top of the kernel;
+  - Godot-style `uniform float speed = 2.0;` defaults, which ES rejects outright
+    and which nothing can set from Lua anyway;
+  - bare integer literals in float arithmetic (`uv * 2`, `float freq = 10`),
+    which desktop GLSL promotes and ES does not. Lines that do genuine integer
+    work — a loop header, an array subscript, anything naming an int variable —
+    are left alone.
 
-Known limitation: about 50 of the 134 generator shaders still fail to compile in
-a browser, on top of the two issues above — mixing `int` and `float` (`1 / uv`,
-`for (int i; i < 10.0; ...)`) and initialising `uniform`s, which desktop GLSL
-accepts and GLSL ES does not. They are per-shader source problems, not build
-problems, and they would fail on iOS and Android for the same reason. Every
-filter, transition and composite shader compiles.
+Known limitation: 59 of the 451 shaders still fail to compile in a browser, and
+they would fail on iOS and Android for the same reason. Almost all of it is
+GLSL ES 1.00's restrictions on loops (`Loop index cannot be compared with
+non-constant expression`, `Index expression can only contain const or loop
+symbols`) and array constructors that need ES 3.00. Those are per-shader source
+problems that no build-time shim can paper over.
 
 Nothing else in the app differs from upstream.
 
