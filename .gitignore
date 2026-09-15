@@ -9,3 +9,6 @@ _site/
 
 # Injected into the project by the container's build-html5.sh.
 version.lua
+
+# Written by the Solar2D simulator when it runs against the project folder.
+imgui.ini

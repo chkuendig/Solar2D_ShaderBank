@@ -254,11 +254,19 @@ m.init_file_text = function( grp_, toText_ )
     local _bY = SCRN_DSOY+320 + 50
     local _dY = 25
     local _toText = {}
-    -- toText_.filename =  display.newText{ align= 'left', x= _bX, y= _bY , fontSize= 16, text= '', font=  native.systemFont };  toText_.filename.anchorX = 0
-    -- toText_.kernal =  display.newText{ align= 'left', x= _bX, y= _bY+_dY, fontSize= 16, text= '', font=  native.systemFont };  toText_.kernal.anchorX = 0
-    
-    toText_.filename =  native.newTextField( _bX, _bY, 270, 20);        toText_.filename.anchorX = 0  
-    toText_.kernal =    native.newTextField( _bX, _bY+_dY, 270, 20 );   toText_.kernal.anchorX = 0  
+    -- Native text fields keep the name selectable, so the simulator still gets
+    -- them. In a browser they are DOM elements laid over the canvas instead of
+    -- objects in it: they ignore the letterbox scaling, so they land in the wrong
+    -- place, and they ignore isVisible, so they sit on top of every other page.
+    -- Plain display text draws inside the canvas and behaves.
+    local _bNative = system.getInfo( "environment" ) == "simulator"
+    local new_label = function( y_ )
+        if _bNative then    return native.newTextField( _bX, y_, 270, 20 )     end
+        return display.newText{ align= 'left', x= _bX, y= y_, fontSize= 16, text= '', font= native.systemFont }
+    end
+
+    toText_.filename =  new_label( _bY );        toText_.filename.anchorX = 0
+    toText_.kernal =    new_label( _bY+_dY );    toText_.kernal.anchorX = 0
 
     grp_:insert( toText_.filename )
     grp_:insert( toText_.kernal )
