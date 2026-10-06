@@ -41,7 +41,7 @@ jobs:
           echo "Capturing with ghcr.io/chkuendig/solar2d:${TAG}"
 
       - name: Capture Generator — balatro
-        uses: chkuendig/docker-solar2d/.github/actions/capture@a7d643471372e63b4233a075b047de7e7badac6a
+        uses: chkuendig/docker-solar2d/.github/actions/capture@cb7e991ecaef9e576102bb7d7a7c9c2507e99fa2
         with:
           project: .
           output: captures
@@ -53,7 +53,7 @@ jobs:
             SHADERBANK_SHADER=Generator:kernelG_BG_balatro
 
       - name: Capture Filter — pixel pixelate
-        uses: chkuendig/docker-solar2d/.github/actions/capture@a7d643471372e63b4233a075b047de7e7badac6a
+        uses: chkuendig/docker-solar2d/.github/actions/capture@cb7e991ecaef9e576102bb7d7a7c9c2507e99fa2
         with:
           project: .
           output: captures
@@ -65,7 +65,7 @@ jobs:
             SHADERBANK_SHADER=Filter:kernelF_pixel_pixelate
 
       - name: Capture F_Trans — pageScroll
-        uses: chkuendig/docker-solar2d/.github/actions/capture@a7d643471372e63b4233a075b047de7e7badac6a
+        uses: chkuendig/docker-solar2d/.github/actions/capture@cb7e991ecaef9e576102bb7d7a7c9c2507e99fa2
         with:
           project: .
           output: captures
@@ -77,7 +77,7 @@ jobs:
             SHADERBANK_SHADER=F_Trans:kernelF_trans_pageScroll
 
       - name: Capture Composite — FX burn
-        uses: chkuendig/docker-solar2d/.github/actions/capture@a7d643471372e63b4233a075b047de7e7badac6a
+        uses: chkuendig/docker-solar2d/.github/actions/capture@cb7e991ecaef9e576102bb7d7a7c9c2507e99fa2
         with:
           project: .
           output: captures
