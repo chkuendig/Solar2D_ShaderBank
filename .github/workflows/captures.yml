@@ -1,0 +1,97 @@
+# Capture a few shaders from the running viewer and publish them as a run
+# artifact — visual smoke over the bank's four categories without a browser.
+#
+# The viewer picks the shader through SHADERBANK_SHADER (see the env hook in
+# main.lua where the manual-load examples are); the capture action pins the
+# window and content box and validates the PNG inside the container.
+name: Captures
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "main.lua"
+      - "config.lua"
+      - "_shader/**"
+      - ".github/workflows/captures.yml"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Solar2D container tag to capture with (e.g. 3734, latest)"
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  # Same pinning policy as pages.yml, but a frame-tap release: the capture
+  # command and offscreen sizing only exist from 3734 on.
+  SOLAR2D_TAG: "3734"
+
+jobs:
+  capture:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve container image
+        run: |
+          TAG="${{ inputs.image_tag || env.SOLAR2D_TAG }}"
+          echo "IMAGE=ghcr.io/chkuendig/solar2d:${TAG}" >> "$GITHUB_ENV"
+          echo "Capturing with ghcr.io/chkuendig/solar2d:${TAG}"
+
+      - name: Capture Generator — balatro
+        uses: chkuendig/docker-solar2d/.github/actions/capture@a7d6434b0a876c9db00c73a739a6b9f9d80e1d05
+        with:
+          project: .
+          output: captures
+          label: generator-balatro
+          screen: 320x480
+          delay-ms: 6000
+          image: ${{ env.IMAGE }}
+          env: |
+            SHADERBANK_SHADER=Generator:kernelG_BG_balatro
+
+      - name: Capture Filter — pixel pixelate
+        uses: chkuendig/docker-solar2d/.github/actions/capture@a7d6434b0a876c9db00c73a739a6b9f9d80e1d05
+        with:
+          project: .
+          output: captures
+          label: filter-pixelate
+          screen: 320x480
+          delay-ms: 6000
+          image: ${{ env.IMAGE }}
+          env: |
+            SHADERBANK_SHADER=Filter:kernelF_pixel_pixelate
+
+      - name: Capture F_Trans — pageScroll
+        uses: chkuendig/docker-solar2d/.github/actions/capture@a7d6434b0a876c9db00c73a739a6b9f9d80e1d05
+        with:
+          project: .
+          output: captures
+          label: ftrans-pageScroll
+          screen: 320x480
+          delay-ms: 6000
+          image: ${{ env.IMAGE }}
+          env: |
+            SHADERBANK_SHADER=F_Trans:kernelF_trans_pageScroll
+
+      - name: Capture Composite — FX burn
+        uses: chkuendig/docker-solar2d/.github/actions/capture@a7d6434b0a876c9db00c73a739a6b9f9d80e1d05
+        with:
+          project: .
+          output: captures
+          label: composite-burn
+          screen: 320x480
+          delay-ms: 6000
+          image: ${{ env.IMAGE }}
+          env: |
+            SHADERBANK_SHADER=Composite:kernelC_FX_burn
+
+      - name: Upload captures
+        uses: actions/upload-artifact@v4
+        with:
+          name: shader-captures
+          path: captures/
+          retention-days: 14
+          if-no-files-found: error

@@ -1,7 +1,8 @@
 
 -- MCP Touch: Simulates touch events from control file commands
-local controlFile = "/var/folders/10/hydfn9d9191_df9jxf68zv780000gn/T/solar2d_touch_Solar2D_ShaderBank.control"
-local infoFile = "/var/folders/10/hydfn9d9191_df9jxf68zv780000gn/T/solar2d_display_Solar2D_ShaderBank.json"
+local _mcpTmp = os.getenv("TMPDIR") or "/tmp"
+local controlFile = _mcpTmp .. "/solar2d_touch_Solar2D_ShaderBank.control"
+local infoFile = _mcpTmp .. "/solar2d_display_Solar2D_ShaderBank.json"
 local checkInterval = 100  -- Check for commands every 100ms
 local json = require("json")
 

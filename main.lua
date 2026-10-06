@@ -278,6 +278,19 @@ M.init = function()
     -- m.apply_specific_shader( mC_akCate[3], 'kernelF_trans_pageScroll' )
     -- m.apply_specific_shader( mC_akCate[2], 'kernelF_pixel_ledMatrixV2' )
     -- m.apply_specific_shader( mC_akCate[2], shdilr.bank_get_list(2)[1] )
+
+    -- CI captures pick the shader through the environment instead of an edit
+    -- here: SHADERBANK_SHADER="Category:kernelName", Category one of
+    -- Generator, Filter, F_Trans, Composite (the mC_akCate keys).
+    local _envShader = os.getenv("SHADERBANK_SHADER")
+    if _envShader then
+        local _cat, _name = _envShader:match("^(%a+):([%w_]+)$")
+        if _cat and _name then
+            m.apply_specific_shader(_cat, _name)
+        else
+            print("[SHADERBANK] SHADERBANK_SHADER must be Category:kernelName, got '" .. _envShader .. "'")
+        end
+    end
     
     --=== After Touch
     m.upd_img( 2, 1 )   -- Trigger textureWrap setting
