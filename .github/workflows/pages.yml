@@ -43,6 +43,7 @@ jobs:
         run: |
           TAG="${{ inputs.image_tag || env.SOLAR2D_TAG }}"
           echo "IMAGE=ghcr.io/chkuendig/solar2d:${TAG}" >> "$GITHUB_ENV"
+          echo "BUILD_VERSION=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
           echo "Building with ghcr.io/chkuendig/solar2d:${TAG}"
 
       # The app finds its shaders with lfs.dir() over the resource folder, which
@@ -51,16 +52,19 @@ jobs:
       - name: List shaders for the packaged build
         run: tools/gen-shader-manifest.sh
 
+      # The image's own composite action rather than a hand-written docker run:
+      # it owns the mount layout and the build flags, so a change to either lands
+      # here by bumping the pin instead of being re-derived. Pinned to a commit,
+      # not a branch, so the build does not move underneath an unchanged commit.
       - name: Build the viewer for HTML5
-        run: |
-          mkdir -p out
-          docker run --rm \
-            -v "$PWD:/project" \
-            -v "$PWD/out:/output" \
-            -e BUILD_VERSION="${GITHUB_SHA::7}" \
-            "$IMAGE" build \
-              --app-name "$APP_NAME" \
-              --app-version "1.0.${{ github.run_number }}"
+        uses: chkuendig/docker-solar2d/.github/actions/build-html5@14137576f2befb85d782389eface3a9ed77823a8
+        with:
+          project: .
+          output: out
+          app-name: ${{ env.APP_NAME }}
+          app-version: "1.0.${{ github.run_number }}"
+          build-version: ${{ env.BUILD_VERSION }}
+          image: ${{ env.IMAGE }}
 
       - name: Assemble the site
         run: |
