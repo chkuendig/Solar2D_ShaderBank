@@ -13,3 +13,4 @@ version.lua
 # Written by the Solar2D simulator when it runs against the project folder.
 imgui.ini
 captures/
+.walk-out/
