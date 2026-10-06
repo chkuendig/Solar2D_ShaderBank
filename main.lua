@@ -876,6 +876,8 @@ end end
 
 mLsnr.segCon = function( e_ )
     local _nSN = e_.target.segmentNumber
+    -- stdout marker for headless walks (the Captures workflow waits on it)
+    print( "[SHADERBANK] tab " .. _nSN .. " " .. tostring( mC_akCate[_nSN] ) )
     -- Overlay list UX: click tab shows list, keep current preview until a row is tapped.
     -- Clicking the same tab again dismisses. Taps outside the list (blocker) also dismiss.
     if miListCate ~= nil and miListCate == _nSN and moShaderListView and moShaderListView.isVisible then

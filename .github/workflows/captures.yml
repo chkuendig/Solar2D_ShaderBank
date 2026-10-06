@@ -1,9 +1,12 @@
-# Capture a few shaders from the running viewer and publish them as a run
-# artifact — visual smoke over the bank's four categories without a browser.
+# Walk the running viewer through a few shaders and publish the frames and
+# a video of the walk as a run artifact — visual smoke over the bank's four
+# categories without a browser, from one simulator run.
 #
-# The viewer picks the shader through SHADERBANK_SHADER (see the env hook in
-# main.lua where the manual-load examples are); the capture action pins the
-# window and content box and validates the PNG inside the container.
+# The viewer starts on the shader named by SHADERBANK_SHADER (see the env
+# hook in main.lua where the manual-load examples are); the steps file in
+# .github/walk/bank.steps does the rest: keys step within a category, taps
+# on the segmented control switch category, and every step waits for the
+# viewer's own "name: <shader>" line before the next snapshot.
 name: Captures
 
 on:
@@ -13,6 +16,7 @@ on:
       - "main.lua"
       - "config.lua"
       - "_shader/**"
+      - ".github/walk/**"
       - ".github/workflows/captures.yml"
   workflow_dispatch:
     inputs:
@@ -24,12 +28,12 @@ permissions:
   contents: read
 
 env:
-  # Same pinning policy as pages.yml, but a frame-tap release: the capture
-  # command and offscreen sizing only exist from 3734 on.
+  # Same pinning policy as pages.yml, but a frame-tap release: the input
+  # FIFO, frame tap and offscreen sizing the walk needs exist from 3734 on.
   SOLAR2D_TAG: "3734"
 
 jobs:
-  capture:
+  walk:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -38,55 +42,19 @@ jobs:
         run: |
           TAG="${{ inputs.image_tag || env.SOLAR2D_TAG }}"
           echo "IMAGE=ghcr.io/chkuendig/solar2d:${TAG}" >> "$GITHUB_ENV"
-          echo "Capturing with ghcr.io/chkuendig/solar2d:${TAG}"
+          echo "Walking with ghcr.io/chkuendig/solar2d:${TAG}"
 
-      - name: Capture Generator — balatro
-        uses: chkuendig/docker-solar2d/.github/actions/capture@cb7e991ecaef9e576102bb7d7a7c9c2507e99fa2
+      - name: Walk the bank
+        uses: chkuendig/docker-solar2d/.github/actions/walk@ad1e236fb1a7ee4faf29795750559828c639b730
         with:
           project: .
+          steps: .github/walk/bank.steps
           output: captures
-          label: generator-balatro
           screen: 320x480
-          delay-ms: 6000
+          video: "true"
           image: ${{ env.IMAGE }}
           env: |
             SHADERBANK_SHADER=Generator:kernelG_BG_balatro
-
-      - name: Capture Filter — pixel pixelate
-        uses: chkuendig/docker-solar2d/.github/actions/capture@cb7e991ecaef9e576102bb7d7a7c9c2507e99fa2
-        with:
-          project: .
-          output: captures
-          label: filter-pixelate
-          screen: 320x480
-          delay-ms: 6000
-          image: ${{ env.IMAGE }}
-          env: |
-            SHADERBANK_SHADER=Filter:kernelF_pixel_pixelate
-
-      - name: Capture F_Trans — pageScroll
-        uses: chkuendig/docker-solar2d/.github/actions/capture@cb7e991ecaef9e576102bb7d7a7c9c2507e99fa2
-        with:
-          project: .
-          output: captures
-          label: ftrans-pageScroll
-          screen: 320x480
-          delay-ms: 6000
-          image: ${{ env.IMAGE }}
-          env: |
-            SHADERBANK_SHADER=F_Trans:kernelF_trans_pageScroll
-
-      - name: Capture Composite — FX burn
-        uses: chkuendig/docker-solar2d/.github/actions/capture@cb7e991ecaef9e576102bb7d7a7c9c2507e99fa2
-        with:
-          project: .
-          output: captures
-          label: composite-burn
-          screen: 320x480
-          delay-ms: 6000
-          image: ${{ env.IMAGE }}
-          env: |
-            SHADERBANK_SHADER=Composite:kernelC_FX_burn
 
       - name: Upload captures
         uses: actions/upload-artifact@v4

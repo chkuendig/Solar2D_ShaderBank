@@ -1,0 +1,31 @@
+# A walk through the bank for the Captures workflow: one simulator run,
+# one PNG per snap, walk.mp4 of the whole thing. The viewer starts on the
+# shader named by SHADERBANK_SHADER (see the env hook in main.lua). Keys
+# step within a category (left/right) and the viewer prints "name: <shader>"
+# on every switch; a tap on the segmented control prints "[SHADERBANK] tab"
+# and opens that category's list, and a row tap loads that shader. Tabs are
+# tapped on their lower half: the control swallows taps on the label area of
+# its first two segments without firing (engine delivery verified; widget
+# quirk).
+fail ERROR: Runtime error
+wait 6000
+snap generator-balatro
+key right
+expect name:
+wait 800
+snap generator-next
+tap 120 25
+expect [SHADERBANK] tab 2 Filter
+tap 160 73
+wait 1500
+snap filter
+tap 200 25
+expect [SHADERBANK] tab 3 F_Trans
+tap 160 103
+wait 1500
+snap ftrans
+tap 280 25
+expect [SHADERBANK] tab 4 Composite
+tap 160 73
+wait 1500
+snap composite
