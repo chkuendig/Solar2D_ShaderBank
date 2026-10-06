@@ -1,6 +1,6 @@
 
 -- MCP Logger: Redirects print() to file for MCP server access
-local mcp_log_file = "/var/folders/10/hydfn9d9191_df9jxf68zv780000gn/T/corona_log_Solar2D_ShaderBank.txt"
+local mcp_log_file = (os.getenv("TMPDIR") or "/tmp") .. "/corona_log_Solar2D_ShaderBank.txt"
 local original_print = print
 
 -- Truncate log file on simulator start (clear old logs)
