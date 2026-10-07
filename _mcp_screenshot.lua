@@ -1,9 +1,8 @@
 
 -- MCP Screenshot: Captures screenshots periodically when recording is enabled
 local lfs = require("lfs")
-local _mcpTmp = os.getenv("TMPDIR") or "/tmp"
-local screenshotDir = _mcpTmp .. "/solar2d_screenshots_Solar2D_ShaderBank"
-local controlFile = _mcpTmp .. "/solar2d_screenshots_Solar2D_ShaderBank.control"
+local screenshotDir = "/var/folders/10/hydfn9d9191_df9jxf68zv780000gn/T/solar2d_screenshots_Solar2D_ShaderBank"
+local controlFile = "/var/folders/10/hydfn9d9191_df9jxf68zv780000gn/T/solar2d_screenshots_Solar2D_ShaderBank.control"
 local captureInterval = 100  -- 100ms between captures
 local screenshotCount = 0
 local recordingEndTime = 0
