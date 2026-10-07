@@ -57,7 +57,7 @@ jobs:
       # here by bumping the pin instead of being re-derived. Pinned to a commit,
       # not a branch, so the build does not move underneath an unchanged commit.
       - name: Build the viewer for HTML5
-        uses: chkuendig/docker-solar2d/.github/actions/build-html5@ad1e236fb1a7ee4faf29795750559828c639b730
+        uses: chkuendig/docker-solar2d/.github/actions/build-html5@dd8b81ab111a25c4a634c514ae466ef21c11256a
         with:
           project: .
           output: out
