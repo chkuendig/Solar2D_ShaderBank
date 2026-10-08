@@ -1,0 +1,130 @@
+# Cut a release from a tag: build the viewer for the browser, walk the running
+# app in the headless simulator, and publish the walk's frames and video as
+# release assets alongside a link to the live site.
+#
+# This is the public demo of the docker-solar2d actions. One tag produces a
+# WebAssembly build of a real Solar2D app and a recorded run of that app
+# driving itself through four screens — with no X server, no macOS, and no
+# Solar2D installation anywhere in the job.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build a release for (e.g. v2026.10.07-8cc64b8)"
+        required: true
+
+permissions:
+  contents: write
+
+# Never two releases at once, and never cancel one halfway: a half-uploaded
+# release is worse than a late one.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  # The walk needs the input FIFO and frame tap, which land in 3734. Pinned
+  # rather than :latest so a re-cut of the same tag produces the same assets.
+  SOLAR2D_TAG: "3734"
+  APP_NAME: ShaderBank
+  SITE_URL: "https://christian.kuendig.info/Solar2D_ShaderBank/"
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Resolve inputs
+        run: |
+          echo "IMAGE=ghcr.io/chkuendig/solar2d:${SOLAR2D_TAG}" >> "$GITHUB_ENV"
+          echo "TAG_NAME=${{ inputs.tag || github.ref_name }}" >> "$GITHUB_ENV"
+          echo "BUILD_VERSION=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          echo "SHADER_COUNT=$(find _shader -name '*.lua' | wc -l)" >> "$GITHUB_ENV"
+
+      # Shader discovery is lfs.dir() over the resource folder, which only works
+      # in the simulator; a packaged build compiles every .lua into resource.car
+      # and the listing comes back empty. Hand it the list instead.
+      - name: List shaders for the packaged build
+        run: tools/gen-shader-manifest.sh
+
+      - name: Build the viewer for HTML5
+        uses: chkuendig/docker-solar2d/.github/actions/build-html5@dd8b81ab111a25c4a634c514ae466ef21c11256a
+        with:
+          project: .
+          output: out
+          app-name: ${{ env.APP_NAME }}
+          app-version: "1.0.${{ github.run_number }}"
+          build-version: ${{ env.BUILD_VERSION }}
+          image: ${{ env.IMAGE }}
+
+      - name: Walk the bank
+        uses: chkuendig/docker-solar2d/.github/actions/walk@dd8b81ab111a25c4a634c514ae466ef21c11256a
+        with:
+          project: .
+          steps: .github/walk/bank.steps
+          output: captures
+          screen: 320x480
+          video: "true"
+          image: ${{ env.IMAGE }}
+          env: |
+            SHADERBANK_SHADER=Generator:kernelG_BG_balatro
+
+      - name: Package the browser build
+        run: |
+          cd out && zip -qr "${GITHUB_WORKSPACE}/${APP_NAME}-${TAG_NAME}-html5.zip" "${APP_NAME}.html5"
+
+      - name: Write the release notes
+        run: |
+          UPSTREAM_SHA=$(git log -1 --format=%h)
+          {
+            echo "### Try it"
+            echo
+            echo "**${SITE_URL}** — the viewer running in your browser, every shader in the bank,"
+            echo "filterable and linked to its source."
+            echo
+            echo "### What is in this release"
+            echo
+            echo "| asset | what it is |"
+            echo "| --- | --- |"
+            echo "| \`walk.mp4\` | the app driving itself through four categories in the headless simulator |"
+            echo "| \`*.png\` | one snapshot per stop on that walk |"
+            echo "| \`${APP_NAME}-${TAG_NAME}-html5.zip\` | the WebAssembly build, servable from any static host |"
+            echo
+            echo "### How it was built"
+            echo
+            echo "Everything here came out of a GitHub-hosted Linux runner with no Solar2D installed"
+            echo "and no X server, using the composite actions from"
+            echo "[chkuendig/docker-solar2d](https://github.com/chkuendig/docker-solar2d):"
+            echo "\`build-html5\` for the browser build and \`walk\` for the recorded run."
+            echo
+            echo "- Solar2D engine: \`ghcr.io/chkuendig/solar2d:${SOLAR2D_TAG}\`"
+            echo "- Shaders in the bank: ${SHADER_COUNT}"
+            echo "- Commit: \`${UPSTREAM_SHA}\`"
+            echo
+            echo "Snapshots come from \`display.save\`, which renders the Solar2D scene only, so"
+            echo "native text fields are absent from the PNGs and present in the video."
+          } > notes.md
+          cat notes.md
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ASSETS=( "${APP_NAME}-${TAG_NAME}-html5.zip" captures/walk.mp4 )
+          while IFS= read -r p; do ASSETS+=( "$p" ); done < <(find captures -name '*.png' | sort)
+          printf 'attaching:\n'; printf '  %s\n' "${ASSETS[@]}"
+          # Re-cutting a tag should refresh the assets rather than fail.
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release edit "$TAG_NAME" --title "$TAG_NAME" --notes-file notes.md
+            gh release upload "$TAG_NAME" "${ASSETS[@]}" --clobber
+          else
+            gh release create "$TAG_NAME" --title "$TAG_NAME" --notes-file notes.md "${ASSETS[@]}"
+          fi

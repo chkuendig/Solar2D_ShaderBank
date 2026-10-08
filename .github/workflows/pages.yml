@@ -30,7 +30,7 @@ env:
   # Pinned rather than :latest. Two runs of the same commit should produce the
   # same site; an engine that changes underneath the build without the commit
   # changing makes a regression impossible to place. Bump deliberately.
-  SOLAR2D_TAG: "3731"
+  SOLAR2D_TAG: "3734"
   APP_NAME: ShaderBank
 
 jobs:

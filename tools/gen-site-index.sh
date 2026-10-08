@@ -21,11 +21,12 @@ mkdir -p "$OUT_DIR"
 
 esc() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g'; }
 
-# Readable title for a shader folder: _shader/ported/filter -> "Filter · ported"
+# Readable title for a shader folder: _shader/reviewing/filter -> "Filter · reviewing"
 folder_title() {
-    local _rest="${1#_shader/}" _ported="" _name
+    local _rest="${1#_shader/}" _suffix="" _name
     case "$_rest" in
-        ported/*) _ported=" · ported"; _rest="${_rest#ported/}" ;;
+        ported/*)    _suffix=" · ported";    _rest="${_rest#ported/}" ;;
+        reviewing/*) _suffix=" · reviewing"; _rest="${_rest#reviewing/}" ;;
     esac
     case "$_rest" in
         generator)    _name="Generator" ;;
@@ -34,7 +35,7 @@ folder_title() {
         composite)    _name="Composite" ;;
         *)            _name="$_rest" ;;
     esac
-    printf '%s%s' "$_name" "$_ported"
+    printf '%s%s' "$_name" "$_suffix"
 }
 
 total=$(find _shader -type f -name '*.lua' | wc -l)
@@ -118,8 +119,9 @@ cat <<HTML
 Built from <a href="$REPO_URL">$REPO_URL</a> by the
 <a href="https://github.com/chkuendig/docker-solar2d">Solar2D Linux container</a>, which runs the HTML5 packager
 that Solar2D otherwise only ships for macOS and Windows. Shaders are by their original authors — check the licence
-in each file before using one. About fifty of the generator shaders do not compile in a browser:
-they mix <code>int</code> and <code>float</code> in ways desktop GLSL forgives and GLSL ES does not.
+in each file before using one. A few dozen shaders do not compile in a browser:
+they rely on loop forms and array constructors that desktop GLSL allows and GLSL ES 1.00 does not — the same
+reason they would fail on iOS and Android.
 </footer>
 </div>
 <script>
